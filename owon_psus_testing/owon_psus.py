@@ -18,13 +18,13 @@ class OwonSPE6103(OwonPSU):
     def __init__(self, port, default_timeout=0.5):
         super().__init__(port, default_timeout)
 
-    def current_ramp_down(self, step, _delay, _voltage_limit, output_off=True):
-        if step < 0.001:
+    def current_ramp_down(self, _step, _voltage_limit, _delay, output_off=True):
+        if _step < 0.001:
             raise 'step too low!!!'
         self.set_voltage_limit(_voltage_limit)
         actual_current = self.measure_current()
-        while not isclose(actual_current, step, abs_tol=0.01):
-            next_current = _truncate_float(actual_current - step, 3)
+        while not isclose(actual_current, _step, abs_tol=0.01):
+            next_current = _truncate_float(actual_current - _step, 3)
             if next_current <= 0.0:
                 break
             self.set_current(next_current)
@@ -36,24 +36,25 @@ class OwonSPE6103(OwonPSU):
         if output_off:
             self.set_output(False)
 
-    def current_ramp_up(self, start, stop, step, _delay, _voltage_limit, output_on=True):
-        if step < 0.001:
+    def current_ramp_up(self, _start, _stop, _step, _voltage_limit, _delay, output_on=True):
+        if _step < 0.001:
             raise 'step too low!!!'
         self.set_voltage_limit(_voltage_limit)
-        self.current_ramp_down(step, _delay, _voltage_limit, False)
+        self.current_ramp_down(_step, _delay, _voltage_limit, False)
         self.set_output(output_on)
-        self.set_current(start)
+        if _start:
+            self.set_current(_start)
+            time.sleep(1)
         actual_current = self.measure_current()
         while True:
-            next_current = _truncate_float(actual_current + step, 3)
-            if next_current > stop:
+            next_current = _truncate_float(actual_current + _step, 3)
+            if next_current > _stop:
                 break
             self.set_current(next_current)
             # we could have measured the current at the instrument output but is too slow
             # problem? We will not be aware if we will reach the limits
             actual_current = next_current
             time.sleep(_delay)
-
 
 if __name__ == "__main__":
 

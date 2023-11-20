@@ -7,11 +7,7 @@
 # Press the green button in the gutter to run the script.
 import datetime
 import time
-
-from owon_psu import OwonPSU
-
 from owon_psus_testing.owon_psus import OwonSPE6103
-from serial_controllers import TtiQL1ChPsu
 from center_309_testing.Center309 import Center309
 from tti_psus_testing.tti_psus import TtiQL564P
 
@@ -37,6 +33,8 @@ def caracterize_peltier(p1_psu: TtiQL564P,
                         p2_psu_voltage_limit,
                         p1_currents,
                         p2_currents,
+                        p1_step_up_with_ramp,
+                        p2_step_up_with_ramp,
                         p1_step_up_delay,
                         p2_step_up_delay,
                         p1_step_down_current,
@@ -74,7 +72,7 @@ def caracterize_peltier(p1_psu: TtiQL564P,
 
     # p1_psu: TtiQL564P
     # p2_psu: OwonPSU
-    p1_psu.enableOutput(True)
+    p1_psu.enable_output(True)
     p2_psu.set_output(True)
     p2_psu.set_voltage_limit(p2_psu_voltage_limit)
 
@@ -85,10 +83,16 @@ def caracterize_peltier(p1_psu: TtiQL564P,
             file.writelines(header)
             file.writelines("*" * 30 + "\n")
             file.writelines(subheader)
-            p1_psu.set_output(p1_psu_voltage_limit, p1_c)
+            if p1_step_up_with_ramp:
+                p1_psu.current_ramp_up(None, p1_c, 0.001, p1_psu_voltage_limit, 0.0)
+            else:
+                p1_psu.set_current(p1_c, p1_psu_voltage_limit)
             time.sleep(p1_step_up_delay)
             for p2_c in p2_currents:
-                p2_psu.set_current(p2_c)
+                if p2_step_up_with_ramp:
+                    p2_psu.current_ramp_up(None, p1_c, 0.001, p2_psu_voltage_limit, 0.0)
+                else:
+                    p2_psu.set_current(p2_c)
                 time.sleep(p2_step_up_delay)
                 # time to read values
                 p1_voltage = p1_psu.measure_voltage()
@@ -103,58 +107,14 @@ def caracterize_peltier(p1_psu: TtiQL564P,
                 print(line)
                 file.writelines(line)
             p2_psu.current_ramp_down(p2_step_down_current,
-                                     p2_step_down_delay,
                                      p2_psu_voltage_limit,
+                                     p2_step_down_delay,
                                      False)
 
     p1_psu.current_ramp_down(p1_step_down_current,
-                             p1_step_down_delay,
                              p1_psu_voltage_limit,
+                             p1_step_down_delay,
                              False)
-
-
-    # k2400.write(":OUTPut ON")
-    # # Adjust voltage at gate##################################
-    # adjust_voltage_at_dut_gate(k2400, daq6510, 101, 35)
-    # ##########################################################
-    # # Configure graph#########################################
-    # plt.autoscale(enable=True, axis='y')
-    # plt.ticklabel_format(style='sci', axis='y', scilimits=(0, 0))
-    # plt.title("Mosfet leakage test over time")
-    # plt.ylabel("Leakage Current in Amps")
-    # plt.xlabel("Seconds")
-    # ##########################################################
-    # # MEASURE LOOP############################################
-    # n_measure = 1
-    # while True:
-    #     separator = ","
-    #     sleep(delay_between_measure_series)
-    #     for index, voltmeter_channel in enumerate(voltmeter_channels):
-    #         voltmeter_channel_str = '(@' + str(voltmeter_channel) + ')'
-    #         sleep(delay_between_measure_devices)
-    #         daq6510.write(':ROUTe:CHANnel:CLOSe ' + voltmeter_channel_str)
-    #         sleep(delay_after_close_channel)
-    #         voltage_at_shunt = float(daq6510.query("READ?"))  # read measurement
-    #         current_at_shunt = voltage_at_shunt / r_shunts[index]
-    #         with open(output_data_file_name, 'a') as file:
-    #             if index == 0:
-    #                 file.writelines(str(n_measure) + separator)
-    #             if index == (len(voltmeter_channels) - 1):
-    #                 separator = "\n"
-    #             file.writelines(str(current_at_shunt) + separator)
-    #         current_at_shunts_evolution[index].append(current_at_shunt)
-    #         sleep(delay_between_measure_devices)
-    #         # daq6510.write(':ROUTe:CHANnel:OPEN ' + voltmeter_channel_str)
-    #     n_measure_series.append(n_measure)
-    #     n_measure = n_measure + 1
-    #
-    #     # Update graph########################################
-    #     for i_color, currents in enumerate(current_at_shunts_evolution):
-    #         plt.plot(n_measure_series, currents, color=plot_colors[i_color])
-    #     plt.show(block=False)
-    #     plt.pause(0.1)
-    #     ######################################################
-    # ##########################################################
 
 
 if __name__ == '__main__':
@@ -189,7 +149,7 @@ if __name__ == '__main__':
 
     p1_psu = TtiQL564P('COM8')
     p1_psu.initialize()
-    p1_psu.enableOutput(False)
+    p1_psu.enable_output(False)
     p1_psu.set_output(p1_psu_voltage_limit, 0.0)
     p1_psu.set_range(p1_psu_range)
     p1_psu.set_over_current_protection(p1_psu_current_limit)
@@ -205,9 +165,9 @@ if __name__ == '__main__':
     thermometer = Center309("COM6", 9600, 1)
 
     caracterize_peltier(p1_psu, p2_psu, thermometer, p1_psu_voltage_limit, p2_psu_voltage_limit,
-                        p1_currents, p2_currents, p1_step_up_delay, p2_step_up_delay,
-                        p1_step_down_current, p2_step_down_current, p1_step_down_delay,
-                        p2_step_down_delay, p1_reference, p2_reference, t_amb)
+                        p1_currents, p2_currents, True, True,
+                        p1_step_up_delay, p2_step_up_delay, p1_step_down_current, p2_step_down_current,
+                        p1_step_down_delay, p2_step_down_delay, p1_reference, p2_reference, t_amb)
 
-    p2_psu.current_ramp_down(0.05, 5, 10, False)
-    p1_psu.current_ramp_down(0.05, 5, 10, False)
+    p2_psu.current_ramp_down(0.05, 10, 0.25, False)
+    p1_psu.current_ramp_down(0.05, 10, 0.25, False)

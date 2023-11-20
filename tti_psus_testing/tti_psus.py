@@ -16,30 +16,11 @@ class TtiQL564P(TtiQL1ChPsu):
     TTI QL564P / QL355P 1 channel PSU basic controller
     """
 
-    def enableOutput(self, enable):
+    def enable_output(self, enable):
         self._write(f'OP{str(1)} {str(1 if enable else 0)}')
 
-    def set_output(self, voltage=0.0, current=0.0):
-        """
-        Set output voltage and current limits at specific channel
-
-        NOTE: be careful when changing voltage and current settings when outputs are engaged. There may also be a time
-        delay between setting voltage and current limit that can cause transient state which could be dangerous
-        for your DUT.
-
-        Parameters
-        ----------
-        channel : int
-            channel number(s)
-        voltage : float
-            channel voltage limit in volts
-        current : float
-            channel current limit in ampere
-        Returns
-        -------
-            None
-        """
-        super(TtiQL1ChPsu, self).set_output(1, voltage, current)
+    def set_current(self, _current, _voltage_limit):
+        super().set_output(1, _voltage_limit, _current)
 
     def set_over_current_protection(self, current):
         self._write(f'OCP{str(1)} {str(current)}')
@@ -62,31 +43,33 @@ class TtiQL564P(TtiQL1ChPsu):
         resp = super(TtiQL1ChPsu, self).get_input(1)
         return float(resp[2])
 
-    def current_ramp_down(self, step, _delay, voltage_limit, output_off=True):
-        if step < 0.001:
+    def current_ramp_down(self, _step, _voltage_limit, _delay, output_off=True):
+        if _step < 0.001:
             raise 'step too low!!!'
         actual_current = self.measure_current()
-        while not isclose(actual_current, step, abs_tol=0.01):
-            next_current = _truncate_float(actual_current - step, 3)
+        while not isclose(actual_current, _step, abs_tol=0.01):
+            next_current = _truncate_float(actual_current - _step, 3)
             if next_current <= 0.0:
                 break
-            self.set_output(voltage_limit, next_current)
+            self.set_current(next_current, _voltage_limit)
             actual_current = next_current
             time.sleep(_delay)
-        self.enableOutput(not output_off)
+        self.enable_output(not output_off)
 
-    def current_ramp_up(self, start, stop, step, _delay, _voltage_limit, output_on=True):
-        if step < 0.001:
+    def current_ramp_up(self, _start, _stop, _step, _voltage_limit, _delay, output_on=True):
+        if _step < 0.001:
             raise 'step too low!!!'
-        self.current_ramp_down(step, _delay, _voltage_limit, False)
-        self.enableOutput(output_on)
-        self.set_output(_voltage_limit, start)
-        actual_current = start
+        self.current_ramp_down(_step, _voltage_limit, _delay,False)
+        self.enable_output(output_on)
+        if _start:
+            self.set_current(_start, _voltage_limit)
+            time.sleep(1)
+        actual_current = self.measure_current()
         while True:
-            next_current = _truncate_float(actual_current + step, 3)
-            if next_current > stop:
+            next_current = _truncate_float(actual_current + _step, 3)
+            if next_current > _stop:
                 break
-            self.set_output(_voltage_limit, next_current)
+            self.set_current(next_current, _voltage_limit)
             # we could have measured the current at the instrument output but is too slow
             # problem? We will not be aware if we will reach the limits
             actual_current = next_current
@@ -98,13 +81,13 @@ if __name__ == "__main__":
     psu = TtiQL564P('COM8')
     psu.initialize()
 
-    maxI = 2.0
+    stopI = 2.0
     startI = 0.0
     stepI = 0.1
     stepUpDelay = 0.5
     stepDownDelay = 0.25
     voltage_limit = 4.0
     while True:
-        psu.current_ramp_up(startI, maxI, stepI, stepUpDelay, voltage_limit, True)
+        psu.current_ramp_up(startI, stopI, stepI, voltage_limit, stepUpDelay, True)
         time.sleep(5)
-        psu.current_ramp_down(stepI, stepDownDelay, voltage_limit, False)
+        psu.current_ramp_down(stepI, voltage_limit, stepDownDelay, False)
