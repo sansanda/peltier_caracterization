@@ -1,9 +1,11 @@
-import math
-import numbers
 import time
 from math import isclose
-
 from serial_controllers import TtiQL1ChPsu
+
+import logging
+
+FORMAT = '%(asctime)s:%(levelname)s:%(message)s'
+logging.basicConfig(format=FORMAT, level=logging.INFO, datefmt='%m/%d/%Y %I:%M:%S %p')
 
 
 def _truncate_float(number, n):
@@ -20,30 +22,35 @@ class TtiQL564P(TtiQL1ChPsu):
         self._write(f'OP{str(1)} {str(1 if enable else 0)}')
 
     def set_current(self, _current, _voltage_limit):
+        logging.info(self.__class__.__name__ + ": Setting current to %s", _current)
         super().set_output(1, _voltage_limit, _current)
 
-    def set_over_current_protection(self, current):
-        self._write(f'OCP{str(1)} {str(current)}')
+    def set_over_current_protection(self, _current):
+        logging.info(self.__class__.__name__ + ": Setting current protection to %s", _current)
+        self._write(f'OCP{str(1)} {str(_current)}')
 
     def set_range(self, _range):
         """
         QL355 Models: 0=15V(5A), 1=35V(3A), 2=35V(500mA)
         QL564 Models: 0=25V(4A), 1=56V(2A), 2=56V(500mA)
-        :param channel:
         :param _range: 0, 1 or 2
         :return: None
         """
-
+        logging.info("setting range to %s", _range)
         self._write(f'RANGE{str(1)} {str(_range)}')
 
     def measure_voltage(self):
-        return float(super(TtiQL1ChPsu, self).get_input(1)[0])
+        voltage = float(super(TtiQL1ChPsu, self).get_input(1)[0])
+        logging.info(self.__class__.__name__ + ": Measuring voltage... voltage = %s", voltage)
+        return voltage
 
     def measure_current(self):
-        resp = super(TtiQL1ChPsu, self).get_input(1)
-        return float(resp[2])
+        current = float(super(TtiQL1ChPsu, self).get_input(1)[2])
+        logging.info(self.__class__.__name__ + ": Measuring current... current = %s", current)
+        return current
 
     def current_ramp_down(self, _step, _voltage_limit, _delay, output_off=True):
+        logging.info(self.__class__.__name__ + ": Ramping current down to zero...")
         if _step < 0.001:
             raise 'step too low!!!'
         actual_current = self.measure_current()
@@ -55,18 +62,36 @@ class TtiQL564P(TtiQL1ChPsu):
             actual_current = next_current
             time.sleep(_delay)
         self.enable_output(not output_off)
+        logging.info(self.__class__.__name__ + ": Ramping current down to zero DONE!")
 
     def current_ramp_up(self, _start, _stop, _step, _voltage_limit, _delay, output_on=True):
+        logging.debug(self.__class__.__name__ +
+                      ": Call with parameters _start = %s, "
+                      "_stop = %s, "
+                      "_step = %s, "
+                      "_voltage_limit = %s, "
+                      "_delay = %s, "
+                      "output_on = %s.",
+                      _start,
+                      _stop,
+                      _step,
+                      _voltage_limit,
+                      _delay,
+                      output_on)
+
         if _step < 0.001:
             raise 'step too low!!!'
-        self.current_ramp_down(_step, _voltage_limit, _delay,False)
+        self.current_ramp_down(_step, _voltage_limit, _delay, False)
         self.enable_output(output_on)
         if _start:
             self.set_current(_start, _voltage_limit)
             time.sleep(1)
         actual_current = self.measure_current()
+        logging.info(self.__class__.__name__ + ": Ramping current up from... %s to %s.", actual_current, _stop)
         while True:
-            next_current = _truncate_float(actual_current + _step, 3)
+            next_current = _truncate_float(actual_current + _step, 4)
+            logging.debug("actual current = %s, step = %s, next current = %s",
+                          actual_current, _step, next_current)
             if next_current > _stop:
                 break
             self.set_current(next_current, _voltage_limit)
@@ -74,11 +99,12 @@ class TtiQL564P(TtiQL1ChPsu):
             # problem? We will not be aware if we will reach the limits
             actual_current = next_current
             time.sleep(_delay)
+        logging.info(self.__class__.__name__ + ": Ramping current up DONE!")
 
 
 if __name__ == "__main__":
 
-    psu = TtiQL564P('COM8')
+    psu = TtiQL564P('COM6')
     psu.initialize()
 
     stopI = 2.0

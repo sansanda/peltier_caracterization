@@ -11,17 +11,22 @@ from owon_psus_testing.owon_psus import OwonSPE6103
 from center_309_testing.Center309 import Center309
 from tti_psus_testing.tti_psus import TtiQL564P
 
+import logging
 
-def list_range(start, stop, step_value):
+FORMAT = '%(asctime)s:%(funcName)s:%(message)s'
+logging.basicConfig(format=FORMAT, level=logging.INFO, datefmt='%m/%d/%Y %I:%M:%S %p')
+
+
+def list_range(_start, _stop, _step_value):
     l = []
-    if start >= stop:
-        l.append(round(start, 2))
+    if _start >= _stop:
+        l.append(round(_start, 2))
         return l
     while True:
         if len(l) == 0:
-            l.append(round(start, 2))
-        l.append(round(l[-1] + step_value, 2))
-        if l[-1] >= stop:
+            l.append(round(_start, 2))
+        l.append(round(l[-1] + _step_value, 2))
+        if l[-1] >= _stop:
             break
     return l
 
@@ -44,6 +49,22 @@ def caracterize_peltier(p1_psu: TtiQL564P,
                         p1_reference,
                         p2_reference,
                         t_amb):
+    logging.info("Call parameters list: ",
+                 "p1_psu_voltage_limit = %s", p1_psu_voltage_limit,
+                 "p2_psu_voltage_limit = ", p2_psu_voltage_limit,
+                 "p1_currents = ", p1_currents,
+                 "p2_currents = ", p2_currents,
+                 "p1_step_up_with_ramp = ", p1_step_up_with_ramp,
+                 "p2_step_up_with_ramp = ", p2_step_up_with_ramp,
+                 "p1_step_up_delay = ", p1_step_up_delay,
+                 "p2_step_up_delay = ", p2_step_up_delay,
+                 "p1_step_down_current = ", p1_step_down_current,
+                 "p2_step_down_current = ", p2_step_down_current,
+                 "p1_step_down_delay = ", p1_step_down_delay,
+                 "p2_step_down_delay = ", p2_step_down_delay,
+                 "p1_reference = ", p1_reference,
+                 "p2_reference = ", p2_reference,
+                 "t_amb = ", t_amb)
     # Experiment data#########################################
     experiment_date = datetime.datetime.now()
     peltier1_psu_model = p1_psu.idn()
@@ -84,17 +105,20 @@ def caracterize_peltier(p1_psu: TtiQL564P,
             file.writelines("*" * 30 + "\n")
             file.writelines(subheader)
             if p1_step_up_with_ramp:
-                p1_psu.current_ramp_up(None, p1_c, 0.001, p1_psu_voltage_limit, 0.0)
+                p1_psu.current_ramp_up(None, p1_c, p1_step_up_current / 10, p1_psu_voltage_limit, 0.5)
             else:
                 p1_psu.set_current(p1_c, p1_psu_voltage_limit)
+            logging.info("MAIN: WAITING FOR P1_PSU CURRENT STEP SEETING UP....")
             time.sleep(p1_step_up_delay)
             for p2_c in p2_currents:
                 if p2_step_up_with_ramp:
-                    p2_psu.current_ramp_up(None, p1_c, 0.001, p2_psu_voltage_limit, 0.0)
+                    p2_psu.current_ramp_up(None, p2_c, p2_step_up_current / 10, p2_psu_voltage_limit, 0.5)
                 else:
                     p2_psu.set_current(p2_c)
+                logging.info("MAIN: WAITING FOR P2_PSU CURRENT STEP SEETING UP....")
                 time.sleep(p2_step_up_delay)
                 # time to read values
+                logging.info("MAIN: MEASURING EXPERIMENT DATA....")
                 p1_voltage = p1_psu.measure_voltage()
                 p1_current = p1_psu.measure_current()
                 p2_voltage = p2_psu.measure_voltage()
@@ -105,6 +129,7 @@ def caracterize_peltier(p1_psu: TtiQL564P,
                        + separator + str(p2_voltage) + separator + str(p1_temp) + separator \
                        + str(p2_temp) + "\n"
                 print(line)
+                logging.info("MAIN: WRITING TO FILE THE MEASURED EXPERIMENT DATA....")
                 file.writelines(line)
             p2_psu.current_ramp_down(p2_step_down_current,
                                      p2_psu_voltage_limit,
@@ -118,17 +143,23 @@ def caracterize_peltier(p1_psu: TtiQL564P,
 
 
 if __name__ == '__main__':
-    import numpy as np
+    p1_psu_com_port = "COM6"
+    p2_psu_com_port = "COM5"
+    thermometer_com_port = "COM4"
 
     p1_start_current = 0.0
     p1_stop_current = 3.6
     p1_step_up_current = 0.2
     p1_step_down_current = 0.05
+    p1_step_up_delay = 10  # seconds
+    p1_step_down_delay = 0.5  # seconds
 
     p2_start_current = 0.0
     p2_stop_current = 0.4
     p2_step_up_current = 0.2
     p2_step_down_current = 0.05
+    p2_step_up_delay = 45  # seconds
+    p2_step_down_delay = 0.5  # seconds
 
     p1_currents = list_range(p1_start_current, p1_stop_current, p1_step_up_current)
     p2_currents = list_range(p2_start_current, p2_stop_current, p2_step_up_current)
@@ -139,22 +170,18 @@ if __name__ == '__main__':
     p2_psu_voltage_limit = 4  # Volts
     p2_psu_current_limit = 4  # Amps
 
-    p1_step_up_delay = 1  # seconds
-    p2_step_up_delay = 1  # seconds
-    p1_step_down_delay = 0.5  # seconds
-    p2_step_down_delay = 0.5  # seconds
     p1_reference = "UEPT-130-071-100M200"
     p2_reference = "UEPT-130-071-100M200"
     t_amb = 25  # celsius
 
-    p1_psu = TtiQL564P('COM8')
+    p1_psu = TtiQL564P(p1_psu_com_port)
     p1_psu.initialize()
     p1_psu.enable_output(False)
     p1_psu.set_output(p1_psu_voltage_limit, 0.0)
     p1_psu.set_range(p1_psu_range)
     p1_psu.set_over_current_protection(p1_psu_current_limit)
 
-    p2_psu = OwonSPE6103('COM9')
+    p2_psu = OwonSPE6103(p2_psu_com_port)
     p2_psu.open()
     p2_psu.set_output(False)
     p2_psu.set_voltage_limit(p2_psu_voltage_limit)
@@ -162,7 +189,7 @@ if __name__ == '__main__':
     p2_psu.set_current(0)
     p2_psu.set_voltage(p2_psu_voltage_limit)
 
-    thermometer = Center309("COM6", 9600, 1)
+    thermometer = Center309(thermometer_com_port, 9600, 1)
 
     caracterize_peltier(p1_psu, p2_psu, thermometer, p1_psu_voltage_limit, p2_psu_voltage_limit,
                         p1_currents, p2_currents, True, True,

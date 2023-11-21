@@ -4,6 +4,10 @@ import time
 from math import isclose
 from owon_psu import OwonPSU
 
+import logging
+FORMAT = '%(asctime)s:%(funcName)s:%(message)s'
+logging.basicConfig(format=FORMAT, level=logging.DEBUG, datefmt='%m/%d/%Y %I:%M:%S %p')
+
 
 def _truncate_float(number, n):
     md = 10**n
@@ -18,7 +22,26 @@ class OwonSPE6103(OwonPSU):
     def __init__(self, port, default_timeout=0.5):
         super().__init__(port, default_timeout)
 
+    def measure_current(self):
+        current = super().measure_current()
+        logging.info(self.__class__.__name__ + ": Measuring current... current = %s", current)
+        return current
+
+    def measure_voltage(self):
+        voltage = super().measure_voltage()
+        logging.info(self.__class__.__name__ + ": Measuring voltage... voltage = %s", voltage)
+        return voltage
+
     def current_ramp_down(self, _step, _voltage_limit, _delay, output_off=True):
+        logging.debug(self.__class__.__name__ +
+                      ": Call with parameters _step = %s, "
+                      "_voltage_limit = %s, "
+                      "_delay = %s, "
+                      "output_off = %s.",
+                      _step,
+                      _voltage_limit,
+                      _delay,
+                      output_off)
         if _step < 0.001:
             raise 'step too low!!!'
         self.set_voltage_limit(_voltage_limit)
@@ -37,6 +60,19 @@ class OwonSPE6103(OwonPSU):
             self.set_output(False)
 
     def current_ramp_up(self, _start, _stop, _step, _voltage_limit, _delay, output_on=True):
+        logging.debug(self.__class__.__name__ +
+                      ": Call with parameters _start = %s, "
+                      "_stop = %s, "
+                      "_step = %s, "
+                      "_voltage_limit = %s, "
+                      "_delay = %s, "
+                      "output_on = %s.",
+                      _start,
+                      _stop,
+                      _step,
+                      _voltage_limit,
+                      _delay,
+                      output_on)
         if _step < 0.001:
             raise 'step too low!!!'
         self.set_voltage_limit(_voltage_limit)
@@ -47,13 +83,16 @@ class OwonSPE6103(OwonPSU):
             time.sleep(1)
         actual_current = self.measure_current()
         while True:
-            next_current = _truncate_float(actual_current + _step, 3)
+            next_current = _truncate_float(actual_current + _step, 4)
+            logging.debug(self.__class__.__name__ + " - actual current = %s, step = %s, next current = %s",
+                          actual_current, _step, next_current)
             if next_current > _stop:
                 break
             self.set_current(next_current)
             # we could have measured the current at the instrument output but is too slow
             # problem? We will not be aware if we will reach the limits
             actual_current = next_current
+            logging.debug("OwonSPE6103: delay = %s", _delay)
             time.sleep(_delay)
 
 if __name__ == "__main__":

@@ -1,7 +1,8 @@
-import time
-
 import serial
 
+import logging
+FORMAT = '%(asctime)s:%(funcName)s:%(message)s'
+logging.basicConfig(format=FORMAT, level=logging.DEBUG, datefmt='%m/%d/%Y %I:%M:%S %p')
 
 class Center309:
     def __init__(self, comport, baudrate, stopbits):
@@ -14,6 +15,9 @@ class Center309:
         self.serialport.close()
 
     def read_temperature(self, channel_number):
+
+        logging.info(self.__class__.__name__ + ": Reading temperature on channel number: %s", channel_number)
+
         if not self.serialport.isOpen():
             self.serialport.open()
         self.serialport.write(b'A')
@@ -24,6 +28,10 @@ class Center309:
         bytehigh_value = resp[bytes_toread_indexes[0]]
         bytelow_value = resp[bytes_toread_indexes[1]]
         temperature = int.from_bytes([bytehigh_value, bytelow_value], "big") / 10
+
+        logging.info(self.__class__.__name__ + ": Temperature on channel number: %s is %s ºC",
+                     channel_number, temperature)
+
         return temperature
 
     # def identify(self):
