@@ -40,12 +40,16 @@ class TtiQL564P(TtiQL1ChPsu):
         self._write(f'RANGE{str(1)} {str(_range)}')
 
     def measure_voltage(self):
-        voltage = float(super(TtiQL1ChPsu, self).get_input(1)[0])
+        response = super(TtiQL1ChPsu, self).get_input(1)
+        logging.info(self.__class__.__name__ + ": Measuring voltage... response_data = %s", response)
+        voltage = float(response[0])
         logging.info(self.__class__.__name__ + ": Measuring voltage... voltage = %s", voltage)
         return voltage
 
     def measure_current(self):
-        current = float(super(TtiQL1ChPsu, self).get_input(1)[2])
+        response = super(TtiQL1ChPsu, self).get_input(1)
+        logging.info(self.__class__.__name__ + ": Measuring current... response_data = %s", response)
+        current = float(response[2])
         logging.info(self.__class__.__name__ + ": Measuring current... current = %s", current)
         return current
 
@@ -54,9 +58,10 @@ class TtiQL564P(TtiQL1ChPsu):
         if _step < 0.001:
             raise 'step too low!!!'
         actual_current = self.measure_current()
-        while not isclose(actual_current, _step, abs_tol=0.01):
+        while not isclose(actual_current, _step, abs_tol=0.001):
             next_current = _truncate_float(actual_current - _step, 3)
             if next_current <= 0.0:
+                self.set_current(0.0, _voltage_limit)
                 break
             self.set_current(next_current, _voltage_limit)
             actual_current = next_current
@@ -81,7 +86,7 @@ class TtiQL564P(TtiQL1ChPsu):
 
         if _step < 0.001:
             raise 'step too low!!!'
-        self.current_ramp_down(_step, _voltage_limit, _delay, False)
+        # self.current_ramp_down(_step, _voltage_limit, _delay, False)
         self.enable_output(output_on)
         if _start:
             self.set_current(_start, _voltage_limit)
@@ -93,6 +98,7 @@ class TtiQL564P(TtiQL1ChPsu):
             logging.debug("actual current = %s, step = %s, next current = %s",
                           actual_current, _step, next_current)
             if next_current > _stop:
+                self.set_current(_stop, _voltage_limit)
                 break
             self.set_current(next_current, _voltage_limit)
             # we could have measured the current at the instrument output but is too slow
@@ -113,7 +119,11 @@ if __name__ == "__main__":
     stepUpDelay = 0.5
     stepDownDelay = 0.25
     voltage_limit = 4.0
-    while True:
-        psu.current_ramp_up(startI, stopI, stepI, voltage_limit, stepUpDelay, True)
-        time.sleep(5)
-        psu.current_ramp_down(stepI, voltage_limit, stepDownDelay, False)
+
+    psu.measure_current()
+    psu.measure_voltage()
+
+    # while True:
+    #     psu.current_ramp_up(startI, stopI, stepI, voltage_limit, stepUpDelay, True)
+    #     time.sleep(5)
+    #     psu.current_ramp_down(stepI, voltage_limit, stepDownDelay, False)

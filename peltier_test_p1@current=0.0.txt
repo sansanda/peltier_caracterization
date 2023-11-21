@@ -1,15 +1,14 @@
 ******************************
 Stack2 Peltier caracterization.
 Peltier1_applied currents: [0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 2.2, 2.4, 2.6, 2.8, 3.0, 3.2, 3.4, 3.6]Amps.
-Peltier2_applied currents: [0.0, 0.2, 0.4]Amps.
+Peltier2_applied currents: [0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 2.2, 2.4, 2.6, 2.8, 3.0, 3.2, 3.4, 3.6]Amps.
 Peltier 1 is the closest to the heatsink.
-Experiment date: 2023-11-21 11:26:16.234843
+Experiment date: 2023-11-21 15:28:57.692786
 TAmb: 25 celsius.
 P1 reference: UEPT-130-071-100M200.
 P2 reference: UEPT-130-071-100M200.
-P1 PSU model: THURLBY-THANDAR,QL564P,D,1.6.
+P1 PSU model: .
 P2 PSU model: OWON,SPE6103,22380172,FV:V3.10.0.
 Thermometer model: Center 309.
 ******************************
 P1_I (Amps),P1_V (Volts),P2_I (Amps),P2_V (Volts),T1(ºC),T2(ºC)
-0.001,0.0,0.0,0.0,21.6,21.4

@@ -49,22 +49,22 @@ def caracterize_peltier(p1_psu: TtiQL564P,
                         p1_reference,
                         p2_reference,
                         t_amb):
-    logging.info("Call parameters list: ",
-                 "p1_psu_voltage_limit = %s", p1_psu_voltage_limit,
-                 "p2_psu_voltage_limit = ", p2_psu_voltage_limit,
-                 "p1_currents = ", p1_currents,
-                 "p2_currents = ", p2_currents,
-                 "p1_step_up_with_ramp = ", p1_step_up_with_ramp,
-                 "p2_step_up_with_ramp = ", p2_step_up_with_ramp,
-                 "p1_step_up_delay = ", p1_step_up_delay,
-                 "p2_step_up_delay = ", p2_step_up_delay,
-                 "p1_step_down_current = ", p1_step_down_current,
-                 "p2_step_down_current = ", p2_step_down_current,
-                 "p1_step_down_delay = ", p1_step_down_delay,
-                 "p2_step_down_delay = ", p2_step_down_delay,
-                 "p1_reference = ", p1_reference,
-                 "p2_reference = ", p2_reference,
-                 "t_amb = ", t_amb)
+    # logging.info("Call parameters list: ",
+    #              "p1_psu_voltage_limit = %s", p1_psu_voltage_limit,
+    #              "p2_psu_voltage_limit = ", p2_psu_voltage_limit,
+    #              "p1_currents = ", p1_currents,
+    #              "p2_currents = ", p2_currents,
+    #              "p1_step_up_with_ramp = ", p1_step_up_with_ramp,
+    #              "p2_step_up_with_ramp = ", p2_step_up_with_ramp,
+    #              "p1_step_up_delay = ", p1_step_up_delay,
+    #              "p2_step_up_delay = ", p2_step_up_delay,
+    #              "p1_step_down_current = ", p1_step_down_current,
+    #              "p2_step_down_current = ", p2_step_down_current,
+    #              "p1_step_down_delay = ", p1_step_down_delay,
+    #              "p2_step_down_delay = ", p2_step_down_delay,
+    #              "p1_reference = ", p1_reference,
+    #              "p2_reference = ", p2_reference,
+    #              "t_amb = ", t_amb)
     # Experiment data#########################################
     experiment_date = datetime.datetime.now()
     peltier1_psu_model = p1_psu.idn()
@@ -97,22 +97,32 @@ def caracterize_peltier(p1_psu: TtiQL564P,
     p2_psu.set_output(True)
     p2_psu.set_voltage_limit(p2_psu_voltage_limit)
 
+    p2_psu.current_ramp_down(p2_step_down_current,
+                             p2_psu_voltage_limit,
+                             p2_step_down_delay,
+                             False)
+
+    p1_psu.current_ramp_down(p1_step_down_current,
+                             p1_psu_voltage_limit,
+                             p1_step_down_delay,
+                             False)
+
     for p1_c in p1_currents:
-        output_data_file_name = "peltier_test_p1@current=" + str(p1_c)
+        output_data_file_name = "peltier_test_p1@current=" + str(p1_c) + ".txt"
         with open(output_data_file_name, 'w') as file:
             file.writelines("*" * 30 + "\n")
             file.writelines(header)
             file.writelines("*" * 30 + "\n")
             file.writelines(subheader)
             if p1_step_up_with_ramp:
-                p1_psu.current_ramp_up(None, p1_c, p1_step_up_current / 10, p1_psu_voltage_limit, 0.5)
+                p1_psu.current_ramp_up(None, p1_c, p1_step_up_current / 10, p1_psu_voltage_limit, 1.0)
             else:
                 p1_psu.set_current(p1_c, p1_psu_voltage_limit)
             logging.info("MAIN: WAITING FOR P1_PSU CURRENT STEP SEETING UP....")
             time.sleep(p1_step_up_delay)
             for p2_c in p2_currents:
                 if p2_step_up_with_ramp:
-                    p2_psu.current_ramp_up(None, p2_c, p2_step_up_current / 10, p2_psu_voltage_limit, 0.5)
+                    p2_psu.current_ramp_up(None, p2_c, p2_step_up_current / 10, p2_psu_voltage_limit, 1.0)
                 else:
                     p2_psu.set_current(p2_c)
                 logging.info("MAIN: WAITING FOR P2_PSU CURRENT STEP SEETING UP....")
@@ -128,8 +138,8 @@ def caracterize_peltier(p1_psu: TtiQL564P,
                 line = str(p1_current) + separator + str(p1_voltage) + separator + str(p2_current) \
                        + separator + str(p2_voltage) + separator + str(p1_temp) + separator \
                        + str(p2_temp) + "\n"
-                print(line)
-                logging.info("MAIN: WRITING TO FILE THE MEASURED EXPERIMENT DATA....")
+                logging.info("MAIN: WRITING TO FILE THE MEASURED EXPERIMENT DATA LINE  ....")
+                logging.info("Line = %s", line)
                 file.writelines(line)
             p2_psu.current_ramp_down(p2_step_down_current,
                                      p2_psu_voltage_limit,
@@ -155,7 +165,7 @@ if __name__ == '__main__':
     p1_step_down_delay = 0.5  # seconds
 
     p2_start_current = 0.0
-    p2_stop_current = 0.4
+    p2_stop_current = 3.6
     p2_step_up_current = 0.2
     p2_step_down_current = 0.05
     p2_step_up_delay = 45  # seconds
@@ -164,29 +174,34 @@ if __name__ == '__main__':
     p1_currents = list_range(p1_start_current, p1_stop_current, p1_step_up_current)
     p2_currents = list_range(p2_start_current, p2_stop_current, p2_step_up_current)
 
-    p1_psu_range = 0  # 25V, 4A
-    p1_psu_voltage_limit = 4  # Volts
-    p1_psu_current_limit = 4  # Amps
-    p2_psu_voltage_limit = 4  # Volts
-    p2_psu_current_limit = 4  # Amps
-
     p1_reference = "UEPT-130-071-100M200"
     p2_reference = "UEPT-130-071-100M200"
+    p1_max_voltage = 8.5
+    p2_max_voltage = 8.5
+    p1_max_current = 10
+    p2_max_current = 10
+
+    p1_psu_range = 0  # 25V, 4A
+    p1_psu_voltage_limit = p1_max_voltage  # Volts
+    p1_psu_current_limit = p1_max_current  # Amps
+    p2_psu_voltage_limit = p2_max_voltage  # Volts
+    p2_psu_current_limit = p2_max_current  # Amps
+
     t_amb = 25  # celsius
 
     p1_psu = TtiQL564P(p1_psu_com_port)
     p1_psu.initialize()
-    p1_psu.enable_output(False)
-    p1_psu.set_output(p1_psu_voltage_limit, 0.0)
+    # p1_psu.enable_output(False)
+    # p1_psu.set_output(p1_psu_voltage_limit, 0.0)
     p1_psu.set_range(p1_psu_range)
     p1_psu.set_over_current_protection(p1_psu_current_limit)
 
     p2_psu = OwonSPE6103(p2_psu_com_port)
     p2_psu.open()
-    p2_psu.set_output(False)
+    # p2_psu.set_output(False)
     p2_psu.set_voltage_limit(p2_psu_voltage_limit)
     p2_psu.set_current_limit(p2_psu_current_limit)
-    p2_psu.set_current(0)
+    # p2_psu.set_current(0)
     p2_psu.set_voltage(p2_psu_voltage_limit)
 
     thermometer = Center309(thermometer_com_port, 9600, 1)

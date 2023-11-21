@@ -32,6 +32,14 @@ class OwonSPE6103(OwonPSU):
         logging.info(self.__class__.__name__ + ": Measuring voltage... voltage = %s", voltage)
         return voltage
 
+    def set_voltage(self, _voltage):
+        logging.info(self.__class__.__name__ + ": Setting voltage to = %s", _voltage)
+        super().set_voltage(_voltage)
+
+    def set_current(self, _current):
+        logging.info(self.__class__.__name__ + ": Setting current to = %s", _current)
+        super().set_current(_current)
+
     def current_ramp_down(self, _step, _voltage_limit, _delay, output_off=True):
         logging.debug(self.__class__.__name__ +
                       ": Call with parameters _step = %s, "
@@ -46,9 +54,10 @@ class OwonSPE6103(OwonPSU):
             raise 'step too low!!!'
         self.set_voltage_limit(_voltage_limit)
         actual_current = self.measure_current()
-        while not isclose(actual_current, _step, abs_tol=0.01):
+        while not isclose(actual_current, _step, abs_tol=0.001):
             next_current = _truncate_float(actual_current - _step, 3)
             if next_current <= 0.0:
+                self.set_current(0.0)
                 break
             self.set_current(next_current)
             # we could have measured the cuurent at the instrument output but is too
@@ -76,7 +85,7 @@ class OwonSPE6103(OwonPSU):
         if _step < 0.001:
             raise 'step too low!!!'
         self.set_voltage_limit(_voltage_limit)
-        self.current_ramp_down(_step, _delay, _voltage_limit, False)
+        # self.current_ramp_down(_step, _delay, _voltage_limit, False)
         self.set_output(output_on)
         if _start:
             self.set_current(_start)
@@ -87,6 +96,7 @@ class OwonSPE6103(OwonPSU):
             logging.debug(self.__class__.__name__ + " - actual current = %s, step = %s, next current = %s",
                           actual_current, _step, next_current)
             if next_current > _stop:
+                self.set_current(_stop)
                 break
             self.set_current(next_current)
             # we could have measured the current at the instrument output but is too slow
