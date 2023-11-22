@@ -58,7 +58,7 @@ class TtiQL564P(TtiQL1ChPsu):
         if _step < 0.001:
             raise 'step too low!!!'
         actual_current = self.measure_current()
-        while not isclose(actual_current, _step, abs_tol=0.001):
+        while not isclose(actual_current, 0.0, abs_tol=0.001):
             next_current = _truncate_float(actual_current - _step, 3)
             if next_current <= 0.0:
                 self.set_current(0.0, _voltage_limit)
