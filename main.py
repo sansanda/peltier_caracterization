@@ -1,34 +1,18 @@
 # This is a sample Python script.
-
 # Press Mayús+F10 to execute it or replace it with your code.
 # Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
-
-
 # Press the green button in the gutter to run the script.
+
 import datetime
 import time
 from owon_psus_testing.owon_psus import OwonSPE6103
 from center_309_testing.Center309 import Center309
 from tti_psus_testing.tti_psus import TtiQL564P
+from utils.lists_utils import list_range
 
 import logging
-
 FORMAT = '%(asctime)s:%(funcName)s:%(message)s'
 logging.basicConfig(format=FORMAT, level=logging.INFO, datefmt='%m/%d/%Y %I:%M:%S %p')
-
-
-def list_range(_start, _stop, _step_value):
-    l = []
-    if _start >= _stop:
-        l.append(round(_start, 2))
-        return l
-    while True:
-        if len(l) == 0:
-            l.append(round(_start, 2))
-        l.append(round(l[-1] + _step_value, 2))
-        if l[-1] >= _stop:
-            break
-    return l
 
 
 def caracterize_peltier(p1_psu: TtiQL564P,
@@ -98,11 +82,13 @@ def caracterize_peltier(p1_psu: TtiQL564P,
     p2_psu.set_voltage_limit(p2_psu_voltage_limit)
 
     p2_psu.current_ramp_down(p2_step_down_current,
+                             0.0,
                              p2_psu_voltage_limit,
                              p2_step_down_delay,
                              False)
 
     p1_psu.current_ramp_down(p1_step_down_current,
+                             0.0,
                              p1_psu_voltage_limit,
                              p1_step_down_delay,
                              False)
@@ -142,11 +128,13 @@ def caracterize_peltier(p1_psu: TtiQL564P,
                 logging.info("Line = %s", line)
                 file.writelines(line)
             p2_psu.current_ramp_down(p2_step_down_current,
+                                     0.0,
                                      p2_psu_voltage_limit,
                                      p2_step_down_delay,
                                      False)
 
     p1_psu.current_ramp_down(p1_step_down_current,
+                             0.0,
                              p1_psu_voltage_limit,
                              p1_step_down_delay,
                              False)
@@ -207,9 +195,9 @@ if __name__ == '__main__':
     thermometer = Center309(thermometer_com_port, 9600, 1)
 
     caracterize_peltier(p1_psu, p2_psu, thermometer, p1_psu_voltage_limit, p2_psu_voltage_limit,
-                        p1_currents, p2_currents, True, True,
-                        p1_step_up_delay, p2_step_up_delay, p1_step_down_current, p2_step_down_current,
-                        p1_step_down_delay, p2_step_down_delay, p1_reference, p2_reference, t_amb)
+                        p1_currents, p2_currents, True, True, p1_step_up_delay, p2_step_up_delay,
+                        p1_step_down_current, p2_step_down_current, p1_step_down_delay,
+                        p2_step_down_delay, p1_reference, p2_reference, t_amb)
 
-    p2_psu.current_ramp_down(0.05, 10, 0.25, False)
-    p1_psu.current_ramp_down(0.05, 10, 0.25, False)
+    p2_psu.current_ramp_down(0.05, 0.0, 10, 0.25, False)
+    p1_psu.current_ramp_down(0.05, 0.0, 10, 0.25, False)

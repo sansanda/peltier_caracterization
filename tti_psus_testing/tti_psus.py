@@ -1,16 +1,10 @@
 import time
-from math import isclose
 from serial_controllers import TtiQL1ChPsu
+from utils.numbers_utils import truncate_float
 
 import logging
-
 FORMAT = '%(asctime)s:%(levelname)s:%(message)s'
 logging.basicConfig(format=FORMAT, level=logging.INFO, datefmt='%m/%d/%Y %I:%M:%S %p')
-
-
-def _truncate_float(number, n):
-    md = 10 ** n
-    return int(number * md) / md
 
 
 class TtiQL564P(TtiQL1ChPsu):
@@ -53,21 +47,33 @@ class TtiQL564P(TtiQL1ChPsu):
         logging.info(self.__class__.__name__ + ": Measuring current... current = %s", current)
         return current
 
-    def current_ramp_down(self, _step, _voltage_limit, _delay, output_off=True):
-        logging.info(self.__class__.__name__ + ": Ramping current down to zero...")
+    def current_ramp_down(self, _step, _stop, _voltage_limit, _delay, output_off=True):
+        logging.info(self.__class__.__name__ + ": Ramping current down to %s...", _stop)
+
         if _step < 0.001:
-            raise 'step too low!!!'
+            raise Exception('step too low!!!')
+        if _stop < 0.0:
+            raise Exception('Value for stop current cannot be less than zero!!!')
+
         actual_current = self.measure_current()
-        while not isclose(actual_current, 0.0, abs_tol=0.001):
-            next_current = _truncate_float(actual_current - _step, 3)
-            if next_current <= 0.0:
-                self.set_current(0.0, _voltage_limit)
+        logging.info(self.__class__.__name__ + ": Ramping current down to zero from... %s to %s.",
+                     actual_current, _stop)
+
+        while True:
+            next_current = truncate_float(actual_current - _step, 4)
+            logging.debug("actual current = %s, step = %s, next current = %s",
+                          actual_current, _step, next_current)
+            if next_current < _stop:
+                self.set_current(_stop, _voltage_limit)
                 break
             self.set_current(next_current, _voltage_limit)
+            # we could have measured the current at the instrument output but is too slow
+            # problem? We will not be aware if we will reach the limits
             actual_current = next_current
             time.sleep(_delay)
+
         self.enable_output(not output_off)
-        logging.info(self.__class__.__name__ + ": Ramping current down to zero DONE!")
+        logging.info(self.__class__.__name__ + ": Ramping current down to %s DONE!", _stop)
 
     def current_ramp_up(self, _start, _stop, _step, _voltage_limit, _delay, output_on=True):
         logging.debug(self.__class__.__name__ +
@@ -85,7 +91,7 @@ class TtiQL564P(TtiQL1ChPsu):
                       output_on)
 
         if _step < 0.001:
-            raise 'step too low!!!'
+            raise Exception('step too low!!!')
         # self.current_ramp_down(_step, _voltage_limit, _delay, False)
         self.enable_output(output_on)
         if _start:
@@ -94,7 +100,7 @@ class TtiQL564P(TtiQL1ChPsu):
         actual_current = self.measure_current()
         logging.info(self.__class__.__name__ + ": Ramping current up from... %s to %s.", actual_current, _stop)
         while True:
-            next_current = _truncate_float(actual_current + _step, 4)
+            next_current = truncate_float(actual_current + _step, 4)
             logging.debug("actual current = %s, step = %s, next current = %s",
                           actual_current, _step, next_current)
             if next_current > _stop:
