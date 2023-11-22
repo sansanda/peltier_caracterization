@@ -115,10 +115,8 @@ def caracterize_peltier(p1_psu: TtiQL564P,
                 time.sleep(p2_step_up_delay)
                 # time to read values
                 logging.info("MAIN: MEASURING EXPERIMENT DATA....")
-                p1_voltage = p1_psu.measure_voltage()
-                p1_current = p1_psu.measure_current()
-                p2_voltage = p2_psu.measure_voltage()
-                p2_current = p2_psu.measure_current()
+                p1_current, p1_voltage = p1_psu.measure_current_voltage(2)
+                p2_current, p2_voltage = p2_psu.measure_current_voltage(1)
                 p1_temp = thermometer.read_temperature(1)
                 p2_temp = thermometer.read_temperature(2)
                 line = str(p1_current) + separator + str(p1_voltage) + separator + str(p2_current) \
@@ -149,14 +147,14 @@ if __name__ == '__main__':
     p1_stop_current = 3.6
     p1_step_up_current = 0.2
     p1_step_down_current = 0.05
-    p1_step_up_delay = 10  # seconds
+    p1_step_up_delay = 10  # seconds 10
     p1_step_down_delay = 0.5  # seconds
 
     p2_start_current = 0.0
     p2_stop_current = 3.6
     p2_step_up_current = 0.2
     p2_step_down_current = 0.05
-    p2_step_up_delay = 45  # seconds
+    p2_step_up_delay = 60  # seconds 45
     p2_step_down_delay = 0.5  # seconds
 
     p1_currents = list_range(p1_start_current, p1_stop_current, p1_step_up_current)
@@ -179,6 +177,7 @@ if __name__ == '__main__':
 
     p1_psu = TtiQL564P(p1_psu_com_port)
     p1_psu.initialize()
+    time.sleep(2)
     # p1_psu.enable_output(False)
     # p1_psu.set_output(p1_psu_voltage_limit, 0.0)
     p1_psu.set_range(p1_psu_range)
@@ -186,6 +185,7 @@ if __name__ == '__main__':
 
     p2_psu = OwonSPE6103(p2_psu_com_port)
     p2_psu.open()
+    time.sleep(2)
     # p2_psu.set_output(False)
     p2_psu.set_voltage_limit(p2_psu_voltage_limit)
     p2_psu.set_current_limit(p2_psu_current_limit)

@@ -3,6 +3,7 @@ from serial_controllers import TtiQL1ChPsu
 from utils.numbers_utils import truncate_float
 
 import logging
+
 FORMAT = '%(asctime)s:%(levelname)s:%(message)s'
 logging.basicConfig(format=FORMAT, level=logging.INFO, datefmt='%m/%d/%Y %I:%M:%S %p')
 
@@ -33,19 +34,25 @@ class TtiQL564P(TtiQL1ChPsu):
         logging.info("setting range to %s", _range)
         self._write(f'RANGE{str(1)} {str(_range)}')
 
-    def measure_voltage(self):
-        response = super(TtiQL1ChPsu, self).get_input(1)
-        logging.info(self.__class__.__name__ + ": Measuring voltage... response_data = %s", response)
+    def measure_current_voltage(self, times=1):
+        _times = int(times)
+        if _times <= 0 :
+            _times = 1
+        response = ''
+        for t in range(_times):
+            response = super(TtiQL1ChPsu, self).get_input(1)
+        logging.info(self.__class__.__name__ + ": Measuring current and voltage... response_data = %s", response)
         voltage = float(response[0])
-        logging.info(self.__class__.__name__ + ": Measuring voltage... voltage = %s", voltage)
-        return voltage
-
-    def measure_current(self):
-        response = super(TtiQL1ChPsu, self).get_input(1)
-        logging.info(self.__class__.__name__ + ": Measuring current... response_data = %s", response)
         current = float(response[2])
-        logging.info(self.__class__.__name__ + ": Measuring current... current = %s", current)
-        return current
+        logging.info(self.__class__.__name__ + ": Measuring current and voltage... current = %s, voltage = %s",
+                     current, voltage)
+        return current, voltage
+
+    def measure_voltage(self, times=1):
+        return self.measure_current_voltage(times)[1]
+
+    def measure_current(self, times=1):
+        return self.measure_current_voltage(times)[0]
 
     def current_ramp_down(self, _step, _stop, _voltage_limit, _delay, output_off=True):
         logging.info(self.__class__.__name__ + ": Ramping current down to %s...", _stop)
@@ -115,7 +122,6 @@ class TtiQL564P(TtiQL1ChPsu):
 
 
 if __name__ == "__main__":
-
     psu = TtiQL564P('COM6')
     psu.initialize()
 
@@ -126,10 +132,5 @@ if __name__ == "__main__":
     stepDownDelay = 0.25
     voltage_limit = 4.0
 
-    psu.measure_current()
-    psu.measure_voltage()
-
-    # while True:
-    #     psu.current_ramp_up(startI, stopI, stepI, voltage_limit, stepUpDelay, True)
-    #     time.sleep(5)
-    #     psu.current_ramp_down(stepI, voltage_limit, stepDownDelay, False)
+    psu.measure_current(2)
+    psu.measure_voltage(2)

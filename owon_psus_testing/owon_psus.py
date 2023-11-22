@@ -14,6 +14,19 @@ class OwonSPE6103(OwonPSU):
     def __init__(self, port, default_timeout=0.5):
         super().__init__(port, default_timeout)
 
+    def measure_current_voltage(self, times=1):
+        _times = int(times)
+        if _times <= 0 :
+            _times = 1
+        current = 0
+        voltage = 0
+        for t in range(_times):
+            current = super().measure_current()
+            voltage = super().measure_voltage()
+        logging.info(self.__class__.__name__ + ": Measuring current and voltage... current = %s, voltage = %s",
+                     current, voltage)
+        return current, voltage
+
     def measure_current(self):
         current = super().measure_current()
         logging.info(self.__class__.__name__ + ": Measuring current... current = %s", current)
