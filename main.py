@@ -81,17 +81,17 @@ def caracterize_peltier(p1_psu: TtiQL564P,
     p2_psu.set_output(True)
     p2_psu.set_voltage_limit(p2_psu_voltage_limit)
 
-    p2_psu.current_ramp_down(p2_step_down_current,
-                             0.0,
-                             p2_psu_voltage_limit,
-                             p2_step_down_delay,
-                             False)
-
-    p1_psu.current_ramp_down(p1_step_down_current,
-                             0.0,
-                             p1_psu_voltage_limit,
-                             p1_step_down_delay,
-                             False)
+    # p2_psu.current_ramp_down(p2_step_down_current,
+    #                          0.0,
+    #                          p2_psu_voltage_limit,
+    #                          p2_step_down_delay,
+    #                          False)
+    #
+    # p1_psu.current_ramp_down(p1_step_down_current,
+    #                          0.0,
+    #                          p1_psu_voltage_limit,
+    #                          p1_step_down_delay,
+    #                          False)
 
     for p1_c in p1_currents:
         output_data_file_name = "peltier_test_p1@current=" + str(p1_c) + ".txt"
@@ -143,11 +143,11 @@ if __name__ == '__main__':
     p2_psu_com_port = "COM5"
     thermometer_com_port = "COM4"
 
-    p1_start_current = 0.0
+    p1_start_current = 2.6
     p1_stop_current = 3.6
     p1_step_up_current = 0.2
     p1_step_down_current = 0.05
-    p1_step_up_delay = 10  # seconds 10
+    p1_step_up_delay = 20  # seconds 10
     p1_step_down_delay = 0.5  # seconds
 
     p2_start_current = 0.0
