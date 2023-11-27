@@ -22,12 +22,18 @@ class Center309:
             self.serialport.open()
         self.serialport.write(b'A')
         resp = self.serialport.read(45)
+
+        logging.debug(self.__class__.__name__ + ":read_temperature alldata response= " + str(resp) + "\n")
         first_channels_byte = 7
         bytes_toread_indexes = [first_channels_byte + 2 * (channel_number - 1),
                                 first_channels_byte + 2 * (channel_number - 1) + 1]
+        logging.debug(self.__class__.__name__ + ":read_temperature channel " + str(channel_number) + " = "
+                      + str(resp[bytes_toread_indexes[0]:bytes_toread_indexes[1] + 1]) + "\n")
+
         bytehigh_value = resp[bytes_toread_indexes[0]]
         bytelow_value = resp[bytes_toread_indexes[1]]
-        temperature = int.from_bytes([bytehigh_value, bytelow_value], "big") / 10
+
+        temperature = int.from_bytes([bytehigh_value, bytelow_value], "big", signed=True) / 10
 
         logging.info(self.__class__.__name__ + ": Temperature on channel number: %s is %s ºC",
                      channel_number, temperature)

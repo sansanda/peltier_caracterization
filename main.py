@@ -68,7 +68,11 @@ def caracterize_single_peltier(psu: OwonSPE6103,
 
         for p1_c in p1_currents:
             if p1_step_up_with_ramp:
-                psu.current_ramp_up(None, p1_c, p1_step_up_current / 10, psu_voltage_limit,
+                current = psu.measure_current()
+                # divider = int((abs(current-p1_step_up_current)/0.1)*5)
+                # si fraccionamos en 5 un delta de 0,1. Para un delta dado fraccionaremos (delta/0.1)*5
+                divider = 10
+                psu.current_ramp_up(None, p1_c, p1_step_up_current / divider, psu_voltage_limit,
                                     1.0)
             else:
                 psu.set_current(p1_c)
