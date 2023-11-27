@@ -220,7 +220,7 @@ def single_peltier(output_data_file_name):
     p2_psu_voltage_limit = p2_max_voltage  # Volts
     p2_psu_current_limit = p2_max_current  # Amps
 
-    t_amb = 25  # celsius
+    t_amb = 18  # celsius
 
     p2_psu = OwonSPE6103(p2_psu_com_port)
     p2_psu.open()
