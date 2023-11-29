@@ -210,7 +210,7 @@ def single_peltier(output_data_file_name):
     thermometer_com_port = "COM4"
 
     p2_start_current = 0.0
-    p2_stop_current = 3.6
+    p2_stop_current = 8.0
     p2_step_up_current = 0.2
     p2_step_down_current = 0.05
     p2_step_up_delay = 60  # seconds 45
@@ -219,12 +219,12 @@ def single_peltier(output_data_file_name):
     p2_currents = list_range(p2_start_current, p2_stop_current, p2_step_up_current)
 
     p2_reference = "UEPT-130-071-100M200"
-    p2_max_voltage = 8.5
+    p2_max_voltage = 9.0
     p2_max_current = 10
     p2_psu_voltage_limit = p2_max_voltage  # Volts
     p2_psu_current_limit = p2_max_current  # Amps
 
-    t_amb = 18  # celsius
+    t_amb = 20  # celsius
 
     p2_psu = OwonSPE6103(p2_psu_com_port)
     p2_psu.open()
@@ -338,5 +338,5 @@ def double_stack_peltiers(output_data_file_name):
 if __name__ == '__main__':
     # output_data_file_name = "peltier_test_p1_p2"
     # double_stack_peltiers(output_data_file_name)
-    output_data_file_name = "peltier_test_p1"
+    output_data_file_name = "peltier_test3_p1"
     single_peltier(output_data_file_name)
