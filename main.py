@@ -338,5 +338,5 @@ def double_stack_peltiers(output_data_file_name):
 if __name__ == '__main__':
     # output_data_file_name = "peltier_test_p1_p2"
     # double_stack_peltiers(output_data_file_name)
-    output_data_file_name = "peltier_test3_p1"
+    output_data_file_name = "peltier_test4_p1"
     single_peltier(output_data_file_name)
